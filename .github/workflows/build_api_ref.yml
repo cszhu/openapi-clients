@@ -36,10 +36,10 @@ jobs:
 
     - name: Generate API documentation with Redocly
       run: |
-        redocly build-docs redocly/scripts/master_api_combined.yaml --template redocly/templates/redoc_template.html
+        redocly build-docs redocly/scripts/master_api_combined.yaml --template redocly/templates/redoc_template.html --output output/redoc-static.html
 
     - name: Upload Generated HTML as Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: master-api-combined-${{ steps.date.outputs.date }}
-        path: output/master_api_combined.html
+        name: redoc-static-${{ steps.date.outputs.date }}
+        path: output/redoc-static.html
