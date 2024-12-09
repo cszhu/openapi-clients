@@ -2,8 +2,8 @@ import yaml
 import re
 import os
 
-# Paths to the API spec files to combine
-file_paths = {
+# Make sure to update these if these files are ever moved
+FILE_PATHS = {
     "authentication": "../../res/authentication-apis.yaml",
     "data_in": "../../res/data-in-apis.yaml",
     "data_out": "../../res/data-out-apis.yaml",
@@ -13,10 +13,8 @@ file_paths = {
     "compensation_benchmarks": "../../res/compensation-benchmarks.yaml"
 }
 
-# List of tags to exclude from the final OpenAPI spec
-excluded_tags = {
-    "administration": ["TenantsV1", "TenantsV2"]
-}
+# Add excluded tags here if you want to exclude anything
+EXCLUDED_TAGS = {}
 
 def transform_tag_name(tag_name):
     spaced_tag_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', tag_name)
@@ -44,7 +42,7 @@ def process_descriptions(content):
         for item in content:
             process_descriptions(item)
 
-def collect_openapi_components(file_paths, excluded_tags):
+def collect_openapi_components(FILE_PATHS, EXCLUDED_TAGS):
     collected_data = {
         "paths": {},
         "schemas": {},
@@ -53,7 +51,7 @@ def collect_openapi_components(file_paths, excluded_tags):
         "x-tagGroups": {}
     }
 
-    for group_name, file_path in file_paths.items():
+    for group_name, file_path in FILE_PATHS.items():
         if not os.path.exists(file_path):
             print(f"Skipping missing file: {file_path}")
             continue
@@ -75,7 +73,7 @@ def collect_openapi_components(file_paths, excluded_tags):
 
         tags = parsed_content.get('tags', [])
         for tag in tags:
-            if group_name in excluded_tags and tag['name'] in excluded_tags[group_name]:
+            if group_name in EXCLUDED_TAGS and tag['name'] in EXCLUDED_TAGS[group_name]:
                 continue
 
             original_tag_name = tag['name']
@@ -106,6 +104,12 @@ def collect_openapi_components(file_paths, excluded_tags):
     return collected_data
 
 def merge_openapi_components(collected_data):
+    # SYmbol table to ensure we don't have duplicates.
+    symbol_table = {
+        "schemas": set(),
+        "securitySchemes": set()
+    }
+
     openapi_merged = {
         "openapi": "3.0.0",
         "info": {
@@ -114,19 +118,34 @@ def merge_openapi_components(collected_data):
         },
         "paths": collected_data["paths"],
         "components": {
-            "schemas": collected_data["schemas"],
-            "securitySchemes": collected_data["securitySchemes"]
+            "schemas": {},
+            "securitySchemes": {}
         },
         "security": [],
         "tags": [],
         "x-tagGroups": []
     }
 
+    # Add schemas and check for conflicts
+    for schema_name, schema_content in collected_data["schemas"].items():
+        if schema_name in symbol_table["schemas"]:
+            raise ValueError(f"Conflicting schema name detected: {schema_name}")
+        symbol_table["schemas"].add(schema_name)
+        openapi_merged["components"]["schemas"][schema_name] = schema_content
+
+    # Add security schemes and check for conflicts
+    for scheme_name, scheme_content in collected_data["securitySchemes"].items():
+        if scheme_name in symbol_table["securitySchemes"]:
+            raise ValueError(f"Conflicting security scheme name detected: {scheme_name}")
+        symbol_table["securitySchemes"].add(scheme_name)
+        openapi_merged["components"]["securitySchemes"][scheme_name] = scheme_content
+
     openapi_merged["tags"].extend(collected_data["tags"].values())
     openapi_merged["x-tagGroups"].extend(collected_data["x-tagGroups"].values())
+
     return openapi_merged
 
-collected_data = collect_openapi_components(file_paths, excluded_tags)
+collected_data = collect_openapi_components(FILE_PATHS, EXCLUDED_TAGS)
 openapi_combined = merge_openapi_components(collected_data)
 
 merged_yaml_path = 'master_api_combined.yaml'
