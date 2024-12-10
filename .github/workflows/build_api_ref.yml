@@ -2,6 +2,8 @@ name: Generate API Documentation
 
 on:
   push:
+    branches:
+      - 'main'   # This will only trigger the workflow on the main branch
     paths:
       - 'res/**' # This will only trigger on changes to the /res/ folder
   workflow_dispatch:
@@ -39,6 +41,11 @@ jobs:
       working-directory: redocly  # Run Redocly CLI in the redocly folder
       run: |
         redocly build-docs scripts/master_api_combined.yaml --template templates/redoc-template.html --output output/redoc-static.html
+
+    - name: Remove HTML comments
+      # Run the Python script to remove comments and extra whitespace so Madcap Flare displays it nicely.
+      working-directory: redocly
+      run: python ./scripts/remove-comments.py
 
     - name: Upload Generated HTML as Artifact
       uses: actions/upload-artifact@v3

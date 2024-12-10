@@ -2,7 +2,7 @@ import yaml
 import re
 import os
 
-# Make sure to update these if these files are ever moved
+# Paths to the API spec files to combine
 FILE_PATHS = {
     "authentication": "../../res/authentication-apis.yaml",
     "data_in": "../../res/data-in-apis.yaml",
@@ -13,7 +13,6 @@ FILE_PATHS = {
     "compensation_benchmarks": "../../res/compensation-benchmarks.yaml"
 }
 
-# Add excluded tags here if you want to exclude anything
 EXCLUDED_TAGS = {}
 
 def transform_tag_name(tag_name):
@@ -41,6 +40,46 @@ def process_descriptions(content):
     elif isinstance(content, list):
         for item in content:
             process_descriptions(item)
+
+def add_missing_tags(collected_data):
+    # Define missing tags and their group mappings
+    # Current have a PR open in Bitbucket to add these missing tags, until it is merged in I will keep this
+    # in here until the YAMLs are properly updated. 
+    missing_tags = {
+        "DataUpload": {
+            "description": "Send data files to Visier. After we receive the data, Visier starts a receiving job and a processing job to process the data.",
+            "x-displayName": "Data Upload",
+            "group": "data_in"
+        },
+        "SourceFilesDownload": {
+            "description": "Operations related to source file downloads.",
+            "x-displayName": "Source Files Download",
+            "group": "data_out"
+        },
+        "Sources": {
+            "description": "Operations related to sources management.",
+            "x-displayName": "Sources",
+            "group": "administration"
+        }
+    }
+
+    for tag_name, tag_info in missing_tags.items():
+        if tag_name not in collected_data["tags"]:
+            # Add the missing tag
+            collected_data["tags"][tag_name] = {
+                "name": tag_name,
+                "description": tag_info["description"],
+                "x-displayName": tag_info["x-displayName"]
+            }
+
+            # Transform the group name and add the tag to its group
+            group_name_transformed = transform_tag_group_name(tag_info["group"])
+            if group_name_transformed not in collected_data["x-tagGroups"]:
+                collected_data["x-tagGroups"][group_name_transformed] = {"name": group_name_transformed, "tags": []}
+            if tag_name not in collected_data["x-tagGroups"][group_name_transformed]["tags"]:
+                collected_data["x-tagGroups"][group_name_transformed]["tags"].append(tag_name)
+
+    return collected_data
 
 def collect_openapi_components(FILE_PATHS, EXCLUDED_TAGS):
     collected_data = {
@@ -88,23 +127,14 @@ def collect_openapi_components(FILE_PATHS, EXCLUDED_TAGS):
             if original_tag_name not in collected_data["x-tagGroups"][group_name_transformed]["tags"]:
                 collected_data["x-tagGroups"][group_name_transformed]["tags"].append(original_tag_name)
 
-    if "DataUpload" not in collected_data["tags"]:
-        collected_data["tags"]["DataUpload"] = {
-            "name": "DataUpload",
-            "description": "Operations related to data upload.",
-            "x-displayName": "Data Upload"
-        }
 
-        data_in_group_name_transformed = transform_tag_group_name('data_in')
-        if data_in_group_name_transformed not in collected_data["x-tagGroups"]:
-            collected_data["x-tagGroups"][data_in_group_name_transformed] = {"name": data_in_group_name_transformed, "tags": []}
-        if "DataUpload" not in collected_data["x-tagGroups"][data_in_group_name_transformed]["tags"]:
-            collected_data["x-tagGroups"][data_in_group_name_transformed]["tags"].append("DataUpload")
+    # Add missing tags using the efficient function
+    collected_data = add_missing_tags(collected_data)
 
     return collected_data
 
 def merge_openapi_components(collected_data):
-    # SYmbol table to ensure we don't have duplicates.
+    # Checking for no conflicts
     symbol_table = {
         "schemas": set(),
         "securitySchemes": set()
