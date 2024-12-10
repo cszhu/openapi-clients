@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'main'   # This will only trigger the workflow on the main branch
+      - 'test-workflow'
     paths:
       - 'res/**' # This will only trigger on changes to the /res/ folder
   workflow_dispatch:
