@@ -23,13 +23,19 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: pip install pyyaml
+      run: |
+        pip install pyyaml
+        pip install pytest
+
+    - name: Run tests
+      working-directory: redocly
+      run: pytest ./scripts/combine_yamls_test.py
 
     - name: Run Python script to combine YAMLs
       working-directory: redocly  # Run script in the redocly folder
       run: |
         mkdir -p output
-        python ./scripts/combine-yamls.py
+        python ./scripts/combine_yamls.py
 
     - name: Get current date
       id: date
@@ -46,7 +52,7 @@ jobs:
     - name: Remove HTML comments
       # Run the Python script to remove comments and extra whitespace so Madcap Flare displays it nicely.
       working-directory: redocly
-      run: python ./scripts/remove-comments.py
+      run: python ./scripts/remove_comments.py
 
     - name: Upload Generated HTML as Artifact
       uses: actions/upload-artifact@v3
