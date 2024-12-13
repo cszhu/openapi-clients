@@ -59,7 +59,7 @@ jobs:
       id: create-release
       uses: ncipollo/release-action@v1
       with:
-        tag: api-ref-${{ github.ref_name }}  # Custom tag for the release
-        name: "API Documentation - ${{ github.ref_name }}"  # Custom release name
+        tag: api-ref-${{ github.ref_name }}-2  # Custom tag for the release
+        name: "API Documentation - ${{ github.ref_name }} 2"  # Custom release name
         artifacts: redoc-static-${{ steps.date.outputs.date }}.tar.gz  # Use the tar.gz archive
         omitBody: true
