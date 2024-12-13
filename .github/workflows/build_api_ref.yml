@@ -54,8 +54,11 @@ jobs:
       working-directory: redocly
       run: python ./scripts/remove_comments.py
 
-    - name: Upload Generated HTML as Artifact
-      uses: actions/upload-artifact@v3
+    - name: Create release
+      id: create-release
+      uses: ncipollo/release-action@v1
       with:
-        name: redoc-static-${{ steps.date.outputs.date }}
-        path: redocly/output/redoc-static.html
+        tag: api-ref-${{ github.ref_name }}  # Custom tag for the release
+        name: "API Documentation for ${{ github.ref_name }}"  # Custom release name
+        artifacts: redocly/output/redoc-static.html
+        omitBody: true
